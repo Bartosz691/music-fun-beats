@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import User
-from .serializers import RegisterSerializer, UserSerializer
+from .serializers import RegisterSerializer, UserProfileUpdateSerializer, UserSerializer
 
 
 class RegisterView(generics.CreateAPIView):
@@ -50,4 +50,21 @@ class UserMeView(APIView):
         return Response(
             serializer.data,
             status=status.HTTP_200_OK,
+        )
+    
+    def patch(self, request):
+        serializer = UserProfileUpdateSerializer(
+            request.user,
+            data=request.data,
+            partial=True,
+            
+        )
+        
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
+        return Response(
+            UserSerializer(request.user).data,
+            status=status.HTTP_200_OK,
+            
         )
