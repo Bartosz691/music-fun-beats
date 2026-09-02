@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import User
-from .serializers import RegisterSerializer
+from .serializers import RegisterSerializer, UserSerializer
 
 
 class RegisterView(generics.CreateAPIView):
@@ -37,5 +37,17 @@ class LogoutView(APIView):
 
         return Response(
             {'message': 'Wylogowano pomyślnie.'},
+            status=status.HTTP_200_OK,
+        )
+        
+        
+class UserMeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserSerializer(request.user)
+
+        return Response(
+            serializer.data,
             status=status.HTTP_200_OK,
         )
