@@ -46,6 +46,98 @@ services:
       POSTGRES_HOST: db
       USE_REDIS_CACHE: "True"
       REDIS_CACHE_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      CELERY_TASK_ALWAYS_EAGER: "False"
+
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery_orders:
+    build: .
+
+    command: >
+      celery -A config worker
+      --loglevel=info
+      --queues=orders
+      --hostname=orders@%h
+
+    volumes:
+      - .:/app
+
+    env_file:
+      - .env
+
+    environment:
+      USE_SQLITE: "False"
+      POSTGRES_HOST: db
+      USE_REDIS_CACHE: "True"
+      REDIS_CACHE_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      CELERY_TASK_ALWAYS_EAGER: "False"
+
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery_notifications:
+    build: .
+
+    command: >
+      celery -A config worker
+      --loglevel=info
+      --queues=notifications
+      --hostname=notifications@%h
+
+    volumes:
+      - .:/app
+
+    env_file:
+      - .env
+
+    environment:
+      USE_SQLITE: "False"
+      POSTGRES_HOST: db
+      USE_REDIS_CACHE: "True"
+      REDIS_CACHE_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      CELERY_TASK_ALWAYS_EAGER: "False"
+
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery_beat:
+    build: .
+
+    command: >
+      celery -A config beat
+      --loglevel=info
+      --schedule=/tmp/celerybeat-schedule
+
+    volumes:
+      - .:/app
+
+    env_file:
+      - .env
+
+    environment:
+      USE_SQLITE: "False"
+      POSTGRES_HOST: db
+      USE_REDIS_CACHE: "True"
+      REDIS_CACHE_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      CELERY_TASK_ALWAYS_EAGER: "False"
 
     depends_on:
       db:
