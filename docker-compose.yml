@@ -1,0 +1,149 @@
+services:
+  db:
+    image: postgres:16-alpine
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+
+    volumes:
+      - .:/app
+
+    ports:
+      - "8000:8000"
+
+    env_file:
+      - .env
+
+    environment:
+      USE_SQLITE: "False"
+      POSTGRES_HOST: db
+      USE_REDIS_CACHE: "True"
+      REDIS_CACHE_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      CELERY_TASK_ALWAYS_EAGER: "False"
+
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery_orders:
+    build: .
+
+    command: >
+      celery -A config worker
+      --loglevel=info
+      --queues=orders
+      --hostname=orders@%h
+
+    volumes:
+      - .:/app
+
+    env_file:
+      - .env
+
+    environment:
+      USE_SQLITE: "False"
+      POSTGRES_HOST: db
+      USE_REDIS_CACHE: "True"
+      REDIS_CACHE_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      CELERY_TASK_ALWAYS_EAGER: "False"
+
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery_notifications:
+    build: .
+
+    command: >
+      celery -A config worker
+      --loglevel=info
+      --queues=notifications
+      --hostname=notifications@%h
+
+    volumes:
+      - .:/app
+
+    env_file:
+      - .env
+
+    environment:
+      USE_SQLITE: "False"
+      POSTGRES_HOST: db
+      USE_REDIS_CACHE: "True"
+      REDIS_CACHE_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      CELERY_TASK_ALWAYS_EAGER: "False"
+
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery_beat:
+    build: .
+
+    command: >
+      celery -A config beat
+      --loglevel=info
+      --schedule=/tmp/celerybeat-schedule
+
+    volumes:
+      - .:/app
+
+    env_file:
+      - .env
+
+    environment:
+      USE_SQLITE: "False"
+      POSTGRES_HOST: db
+      USE_REDIS_CACHE: "True"
+      REDIS_CACHE_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      CELERY_TASK_ALWAYS_EAGER: "False"
+
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
