@@ -30,3 +30,7 @@ htmlcov/
 # OS
 Thumbs.db
 .DS_Store
+
+celerybeat-schedule
+celerybeat-schedule-shm
+celerybeat-schedule-wal
