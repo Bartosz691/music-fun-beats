@@ -8,6 +8,7 @@ from products.services import validate_album_purchase
 
 from .exceptions import EmptyCartError
 from .models import Cart, CartItem, Order, OrderItem
+from .tasks import send_order_notification
 
 
 @transaction.atomic
@@ -44,6 +45,12 @@ def add_to_cart(user, album, quantity=1):
 
 def generate_payment_code():
     return f'MFB-{uuid4().hex[:8].upper()}'
+
+
+def schedule_order_notification(order_id):
+    transaction.on_commit(
+        lambda: send_order_notification.delay(order_id)
+    )
 
 
 @transaction.atomic
@@ -119,5 +126,7 @@ def checkout(user):
     order.save(update_fields=['total_price'])
 
     CartItem.objects.filter(cart=cart).delete()
+
+    schedule_order_notification(order.id)
 
     return order
