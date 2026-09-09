@@ -24,8 +24,20 @@ class NotificationAdmin(admin.ModelAdmin):
         'user__username',
         'user__email',
         'message',
+        'order__payment_code',
     )
 
     readonly_fields = (
         'created_at',
+    )
+
+    list_select_related = (
+        'user',
+        'order',
+    )
+
+    date_hierarchy = 'created_at'
+
+    ordering = (
+        '-created_at',
     )
